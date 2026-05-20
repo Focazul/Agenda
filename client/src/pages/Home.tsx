@@ -546,12 +546,13 @@ export default function Home() {
                   }}
                   style={{
                     fontFamily: "'Lato', sans-serif",
-                    padding: '6px 10px',
-                    border: '1px solid #1E3A6D',
+                    padding: '8px 12px',
+                    border: '1px solid transparent',
                     borderRadius: 8,
-                    background: '#FFFFFF',
-                    color: '#1E3A6D',
-                    fontSize: '0.9rem'
+                    background: '#1E3A6D',
+                    color: '#FFFFFF',
+                    fontSize: '0.95rem',
+                    boxShadow: '0 1px 0 rgba(0,0,0,0.04)'
                   }}
                 >
                   Exportar
