@@ -521,6 +521,47 @@ export default function Home() {
               <h1 style={{ fontFamily: "'Playfair Display', serif" }} className="text-5xl font-bold text-[#0F1C2E]">
                 Semana {currentWeek}
               </h1>
+
+              <div className="mt-3 flex items-center gap-2">
+                <input id="importFile" type="file" accept="application/json" className="hidden" />
+                <Button
+                  onClick={() => {
+                    try {
+                      const dataStr = JSON.stringify(allWeeks, null, 2);
+                      const blob = new Blob([dataStr], { type: 'application/json' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      const date = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+                      a.download = `weekTrackerData-${date}.json`;
+                      document.body.appendChild(a);
+                      a.click();
+                      a.remove();
+                      URL.revokeObjectURL(url);
+                    } catch (err) {
+                      alert('Erro ao exportar dados: ' + String(err));
+                    }
+                  }}
+                  size="sm"
+                  variant="outline"
+                  style={{ fontFamily: "'Lato', sans-serif" }}
+                >
+                  Exportar
+                </Button>
+
+                <Button
+                  onClick={() => {
+                    const input = document.getElementById('importFile') as HTMLInputElement | null;
+                    if (input) input.click();
+                  }}
+                  size="sm"
+                  variant="ghost"
+                  style={{ fontFamily: "'Lato', sans-serif" }}
+                >
+                  Importar
+                </Button>
+              </div>
+
               <p style={{ fontFamily: "'Lato', sans-serif" }} className="text-lg text-[#6B7280] mt-2">
                 Consistência sem sobrecarga
               </p>
@@ -536,45 +577,7 @@ export default function Home() {
                   </p>
                 </div>
 
-                <div className="flex gap-2 items-center">
-                  <input id="importFile" type="file" accept="application/json" className="hidden" />
-                  <Button
-                    onClick={() => {
-                      try {
-                        const dataStr = JSON.stringify(allWeeks, null, 2);
-                        const blob = new Blob([dataStr], { type: 'application/json' });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        const date = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
-                        a.download = `weekTrackerData-${date}.json`;
-                        document.body.appendChild(a);
-                        a.click();
-                        a.remove();
-                        URL.revokeObjectURL(url);
-                      } catch (err) {
-                        alert('Erro ao exportar dados: ' + String(err));
-                      }
-                    }}
-                    size="sm"
-                    variant="outline"
-                    style={{ fontFamily: "'Lato', sans-serif" }}
-                  >
-                    Exportar
-                  </Button>
-
-                  <Button
-                    onClick={() => {
-                      const input = document.getElementById('importFile') as HTMLInputElement | null;
-                      if (input) input.click();
-                    }}
-                    size="sm"
-                    variant="ghost"
-                    style={{ fontFamily: "'Lato', sans-serif" }}
-                  >
-                    Importar
-                  </Button>
-                </div>
+                {/* buttons moved to left header under week number */}
               </div>
             </div>
           </div>
