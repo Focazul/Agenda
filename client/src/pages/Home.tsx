@@ -157,7 +157,30 @@ export default function Home() {
 
   // Salvar dados no localStorage
   useEffect(() => {
-    localStorage.setItem('weekTrackerData', JSON.stringify(allWeeks));
+    try {
+      const key = 'weekTrackerData';
+      const prev = localStorage.getItem(key);
+      const newVal = JSON.stringify(allWeeks);
+      if (prev && prev !== newVal) {
+        try {
+          const backupsKey = 'weekTrackerData_backups';
+          const backupsRaw = localStorage.getItem(backupsKey);
+          let backups: string[] = backupsRaw ? JSON.parse(backupsRaw) : [];
+          const timestamp = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+          const backupKey = `${key}_backup_${timestamp}`;
+          localStorage.setItem(backupKey, prev);
+          backups.unshift(backupKey);
+          // keep last 5 backups
+          backups = backups.slice(0, 5);
+          localStorage.setItem(backupsKey, JSON.stringify(backups));
+        } catch (e) {
+          // ignore backup failures
+        }
+      }
+      localStorage.setItem(key, newVal);
+    } catch (e) {
+      // ignore localStorage failures
+    }
   }, [allWeeks]);
 
   const toggleTask = (dayIndex: number, taskId: string) => {
