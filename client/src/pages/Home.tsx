@@ -526,52 +526,57 @@ export default function Home() {
               </p>
             </div>
             <div className="text-right">
-              <p style={{ fontFamily: "'Playfair Display', serif" }} className="text-5xl font-bold text-[#1E3A6D]">
-                {progressPercentage}%
-              </p>
-              <p style={{ fontFamily: "'Lato', sans-serif" }} className="text-sm text-[#6B7280]">
-                {weekData.completedCount} de {weekData.totalTasks} tarefas
-              </p>
+              <div className="flex items-start justify-end gap-3">
+                <div className="text-right">
+                  <p style={{ fontFamily: "'Playfair Display', serif" }} className="text-5xl font-bold text-[#1E3A6D]">
+                    {progressPercentage}%
+                  </p>
+                  <p style={{ fontFamily: "'Lato', sans-serif" }} className="text-sm text-[#6B7280]">
+                    {weekData.completedCount} de {weekData.totalTasks} tarefas
+                  </p>
+                </div>
+
+                <div className="flex gap-2 items-center">
+                  <input id="importFile" type="file" accept="application/json" className="hidden" />
+                  <Button
+                    onClick={() => {
+                      try {
+                        const dataStr = JSON.stringify(allWeeks, null, 2);
+                        const blob = new Blob([dataStr], { type: 'application/json' });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        const date = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+                        a.download = `weekTrackerData-${date}.json`;
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        URL.revokeObjectURL(url);
+                      } catch (err) {
+                        alert('Erro ao exportar dados: ' + String(err));
+                      }
+                    }}
+                    size="sm"
+                    variant="outline"
+                    style={{ fontFamily: "'Lato', sans-serif" }}
+                  >
+                    Exportar
+                  </Button>
+
+                  <Button
+                    onClick={() => {
+                      const input = document.getElementById('importFile') as HTMLInputElement | null;
+                      if (input) input.click();
+                    }}
+                    size="sm"
+                    variant="ghost"
+                    style={{ fontFamily: "'Lato', sans-serif" }}
+                  >
+                    Importar
+                  </Button>
+                </div>
+              </div>
             </div>
-          </div>
-
-          {/* Export / Import buttons */}
-          <div className="flex justify-end gap-2 mb-6">
-            <input id="importFile" type="file" accept="application/json" className="hidden" />
-            <Button
-              onClick={() => {
-                try {
-                  const dataStr = JSON.stringify(allWeeks, null, 2);
-                  const blob = new Blob([dataStr], { type: 'application/json' });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement('a');
-                  a.href = url;
-                  const date = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
-                  a.download = `weekTrackerData-${date}.json`;
-                  document.body.appendChild(a);
-                  a.click();
-                  a.remove();
-                  URL.revokeObjectURL(url);
-                } catch (err) {
-                  alert('Erro ao exportar dados: ' + String(err));
-                }
-              }}
-              variant="outline"
-              style={{ fontFamily: "'Lato', sans-serif" }}
-            >
-              Exportar dados
-            </Button>
-
-            <Button
-              onClick={() => {
-                const input = document.getElementById('importFile') as HTMLInputElement | null;
-                if (input) input.click();
-              }}
-              variant="ghost"
-              style={{ fontFamily: "'Lato', sans-serif" }}
-            >
-              Importar dados
-            </Button>
           </div>
 
           {/* Progress Bar */}
