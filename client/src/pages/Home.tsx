@@ -445,6 +445,42 @@ export default function Home() {
     }
   };
 
+  // Import file handler: listens to hidden file input and loads JSON data
+  useEffect(() => {
+    const input = document.getElementById('importFile') as HTMLInputElement | null;
+    if (!input) return;
+
+    const handleFile = async (e: Event) => {
+      const target = e.target as HTMLInputElement;
+      if (!target.files || target.files.length === 0) return;
+      const file = target.files[0];
+      try {
+        const text = await file.text();
+        const parsed = JSON.parse(text);
+        if (!Array.isArray(parsed)) throw new Error('Formato inválido: esperado um array');
+        // Basic validation: each item should have week and schedule
+        const ok = parsed.every((w: any) => w && typeof w.week === 'number' && Array.isArray(w.schedule));
+        if (!ok) throw new Error('Formato inválido do conteúdo');
+
+        setAllWeeks(parsed as WeekData[]);
+        const last = parsed[parsed.length - 1] as WeekData;
+        setWeekData(last);
+        setCurrentWeek(parsed.length);
+        // Save to localStorage (effect will run too)
+        localStorage.setItem('weekTrackerData', JSON.stringify(parsed));
+        alert('Dados importados com sucesso');
+      } catch (err) {
+        alert('Erro ao importar: ' + String(err));
+      } finally {
+        // reset input
+        target.value = '';
+      }
+    };
+
+    input.addEventListener('change', handleFile as any);
+    return () => input.removeEventListener('change', handleFile as any);
+  }, [setAllWeeks, setWeekData, setCurrentWeek]);
+
   return (
     <div className="min-h-screen bg-[#F5F1E8] py-12 px-4">
       <div className="max-w-6xl mx-auto">
@@ -497,6 +533,45 @@ export default function Home() {
                 {weekData.completedCount} de {weekData.totalTasks} tarefas
               </p>
             </div>
+          </div>
+
+          {/* Export / Import buttons */}
+          <div className="flex justify-end gap-2 mb-6">
+            <input id="importFile" type="file" accept="application/json" className="hidden" />
+            <Button
+              onClick={() => {
+                try {
+                  const dataStr = JSON.stringify(allWeeks, null, 2);
+                  const blob = new Blob([dataStr], { type: 'application/json' });
+                  const url = URL.createObjectURL(blob);
+                  const a = document.createElement('a');
+                  a.href = url;
+                  const date = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+                  a.download = `weekTrackerData-${date}.json`;
+                  document.body.appendChild(a);
+                  a.click();
+                  a.remove();
+                  URL.revokeObjectURL(url);
+                } catch (err) {
+                  alert('Erro ao exportar dados: ' + String(err));
+                }
+              }}
+              variant="outline"
+              style={{ fontFamily: "'Lato', sans-serif" }}
+            >
+              Exportar dados
+            </Button>
+
+            <Button
+              onClick={() => {
+                const input = document.getElementById('importFile') as HTMLInputElement | null;
+                if (input) input.click();
+              }}
+              variant="ghost"
+              style={{ fontFamily: "'Lato', sans-serif" }}
+            >
+              Importar dados
+            </Button>
           </div>
 
           {/* Progress Bar */}
