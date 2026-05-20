@@ -524,7 +524,9 @@ export default function Home() {
 
               <div className="mt-3 flex items-center gap-2">
                 <input id="importFile" type="file" accept="application/json" className="hidden" />
-                <Button
+
+                <button
+                  id="export-button"
                   onClick={() => {
                     try {
                       const dataStr = JSON.stringify(allWeeks, null, 2);
@@ -542,24 +544,37 @@ export default function Home() {
                       alert('Erro ao exportar dados: ' + String(err));
                     }
                   }}
-                  size="sm"
-                  variant="outline"
-                  style={{ fontFamily: "'Lato', sans-serif" }}
+                  style={{
+                    fontFamily: "'Lato', sans-serif",
+                    padding: '6px 10px',
+                    border: '1px solid #1E3A6D',
+                    borderRadius: 8,
+                    background: '#FFFFFF',
+                    color: '#1E3A6D',
+                    fontSize: '0.9rem'
+                  }}
                 >
                   Exportar
-                </Button>
+                </button>
 
-                <Button
+                <button
+                  id="import-button"
                   onClick={() => {
                     const input = document.getElementById('importFile') as HTMLInputElement | null;
                     if (input) input.click();
                   }}
-                  size="sm"
-                  variant="ghost"
-                  style={{ fontFamily: "'Lato', sans-serif" }}
+                  style={{
+                    fontFamily: "'Lato', sans-serif",
+                    padding: '6px 10px',
+                    border: '1px solid transparent',
+                    borderRadius: 8,
+                    background: 'transparent',
+                    color: '#1E3A6D',
+                    fontSize: '0.9rem'
+                  }}
                 >
                   Importar
-                </Button>
+                </button>
               </div>
 
               <p style={{ fontFamily: "'Lato', sans-serif" }} className="text-lg text-[#6B7280] mt-2">
