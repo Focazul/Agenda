@@ -3,10 +3,15 @@ import { Check, ChevronRight, ChevronLeft, Calendar, Plus, Trash2, Edit2, AlertC
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 
+type TaskCategory = 'content' | 'fitness' | 'study' | 'website' | 'organization' | 'appointments' | 'finances';
+
+type TaskTag = 'imprevistos';
+
 interface Task {
   id: string;
   label: string;
-  category: 'content' | 'fitness' | 'study' | 'website' | 'organization' | 'appointments';
+  category: TaskCategory;
+  tags?: TaskTag[];
   completed: boolean;
   completedOnDay?: number; // Dia em que foi realmente feita (0-6)
   originalDay: number; // Dia original planejado
@@ -105,6 +110,72 @@ const INITIAL_SCHEDULE: DaySchedule[] = [
   },
 ];
 
+const MINIMAL_GUIDE_SCHEDULE: DaySchedule[] = [
+  {
+    day: 'domingo',
+    dayName: 'Domingo',
+    dayIndex: 0,
+    tasks: [
+      { id: 'dom-1', label: 'Cozinhar base da semana', category: 'organization', completed: false, originalDay: 0, time: '10:00 - 13:00' },
+      { id: 'dom-2', label: 'Planejamento leve', category: 'organization', completed: false, originalDay: 0, time: '15:00 - 16:00' },
+    ],
+  },
+  {
+    day: 'segunda',
+    dayName: 'Segunda-feira',
+    dayIndex: 1,
+    tasks: [
+      { id: 'seg-1', label: 'Criar conteúdo (Post 1)', category: 'content', completed: false, originalDay: 1, time: '09:00 - 12:00' },
+    ],
+  },
+  {
+    day: 'terca',
+    dayName: 'Terça-feira',
+    dayIndex: 2,
+    tasks: [
+      { id: 'ter-1', label: 'Academia', category: 'fitness', completed: false, originalDay: 2, time: '19:00 - 20:00' },
+    ],
+  },
+  {
+    day: 'quarta',
+    dayName: 'Quarta-feira',
+    dayIndex: 3,
+    tasks: [
+      { id: 'qua-1', label: 'Estudo leve (Mestrado/Jung)', category: 'study', completed: false, originalDay: 3, time: '20:00 - 21:00' },
+    ],
+  },
+  {
+    day: 'quinta',
+    dayName: 'Quinta-feira',
+    dayIndex: 4,
+    tasks: [],
+  },
+  {
+    day: 'sexta',
+    dayName: 'Sexta-feira',
+    dayIndex: 5,
+    tasks: [],
+  },
+  {
+    day: 'sabado',
+    dayName: 'Sábado',
+    dayIndex: 6,
+    tasks: [],
+  },
+];
+
+const buildWeekSchedule = (week: number) => {
+  return week >= 4
+    ? MINIMAL_GUIDE_SCHEDULE.map(day => ({
+        ...day,
+        tasks: day.tasks.map(task => ({ ...task, completed: false, completedOnDay: undefined })),
+      }))
+    : INITIAL_SCHEDULE.map(day => ({
+        ...day,
+        tasks: day.tasks.map(task => ({ ...task, completed: false, completedOnDay: undefined })),
+      }));
+};
+
 export default function Home() {
   const [currentWeek, setCurrentWeek] = useState(1);
   const [weekData, setWeekData] = useState<WeekData>({
@@ -127,10 +198,12 @@ export default function Home() {
   const [editingTask, setEditingTask] = useState<{ dayIndex: number; taskId: string } | null>(null);
   const [editLabel, setEditLabel] = useState('');
   const [editTime, setEditTime] = useState('');
+  const [editIsImprevisto, setEditIsImprevisto] = useState(false);
   const [addingTaskDay, setAddingTaskDay] = useState<number | null>(null);
   const [newTaskLabel, setNewTaskLabel] = useState('');
   const [newTaskTime, setNewTaskTime] = useState('');
-  const [newTaskCategory, setNewTaskCategory] = useState<'content' | 'fitness' | 'study' | 'website' | 'organization' | 'appointments'>('organization');
+  const [newTaskCategory, setNewTaskCategory] = useState<TaskCategory>('organization');
+  const [newTaskIsImprevisto, setNewTaskIsImprevisto] = useState(false);
   const [selectingCompletionDay, setSelectingCompletionDay] = useState<{ dayIndex: number; taskId: string } | null>(null);
 
   // Carregar dados do localStorage
@@ -138,17 +211,31 @@ export default function Home() {
     const saved = localStorage.getItem('weekTrackerData');
     if (saved) {
       const data = JSON.parse(saved);
-      // Limpar completedOnDay para tarefas não concluídas
-      const cleanedData = data.map((week: WeekData) => ({
-        ...week,
-        schedule: week.schedule.map(day => ({
-          ...day,
-          tasks: day.tasks.map(task => ({
-            ...task,
-            completedOnDay: task.completed ? task.completedOnDay : undefined
+
+      const cleanedData = data.map((week: WeekData) => {
+        if (week.week >= 4) {
+          const schedule = buildWeekSchedule(week.week);
+          const totalTasks = schedule.reduce((sum, day) => sum + day.tasks.length, 0);
+          return {
+            ...week,
+            schedule,
+            completedCount: 0,
+            totalTasks,
+          };
+        }
+
+        return {
+          ...week,
+          schedule: week.schedule.map(day => ({
+            ...day,
+            tasks: day.tasks.map(task => ({
+              ...task,
+              completedOnDay: task.completed ? task.completedOnDay : undefined
+            }))
           }))
-        }))
-      }));
+        };
+      });
+
       setAllWeeks(cleanedData);
       setWeekData(cleanedData[cleanedData.length - 1]);
       setCurrentWeek(cleanedData.length);
@@ -298,6 +385,7 @@ export default function Home() {
       setEditingTask({ dayIndex, taskId });
       setEditLabel(task.label);
       setEditTime(task.time || '');
+      setEditIsImprevisto(task.tags?.includes('imprevistos') ?? false);
     }
   };
 
@@ -310,7 +398,12 @@ export default function Home() {
           ...day,
           tasks: day.tasks.map(task =>
             task.id === editingTask.taskId
-              ? { ...task, label: editLabel, time: editTime }
+              ? {
+                  ...task,
+                  label: editLabel,
+                  time: editTime,
+                  tags: editIsImprevisto ? ['imprevistos'] : [],
+                }
               : task
           ),
         };
@@ -335,6 +428,7 @@ export default function Home() {
           id: `task-${Date.now()}`,
           label: newTaskLabel,
           category: newTaskCategory,
+          tags: newTaskIsImprevisto ? ['imprevistos'] : [],
           completed: false,
           originalDay: dayIndex,
           time: newTaskTime || undefined,
@@ -358,6 +452,7 @@ export default function Home() {
     setNewTaskLabel('');
     setNewTaskTime('');
     setNewTaskCategory('organization');
+    setNewTaskIsImprevisto(false);
   };
 
   const handleDragStart = (dayIndex: number, taskId: string) => {
@@ -425,6 +520,8 @@ export default function Home() {
       website: 'bg-orange-100 text-orange-700',
       organization: 'bg-rose-100 text-rose-700',
       appointments: 'bg-indigo-100 text-indigo-700',
+      finances: 'bg-teal-100 text-teal-700',
+      imprevistos: 'bg-yellow-100 text-yellow-800',
     };
     return colors[category] || 'bg-gray-100 text-gray-700';
   };
@@ -437,16 +534,15 @@ export default function Home() {
       website: 'Site',
       organization: 'Organização',
       appointments: 'Trabalho',
+      finances: 'Finanças',
+      imprevistos: 'Imprevisto',
     };
     return labels[category] || category;
   };
 
   const nextWeek = () => {
     const newWeek = currentWeek + 1;
-    const newSchedule = INITIAL_SCHEDULE.map(day => ({
-      ...day,
-      tasks: day.tasks.map(t => ({ ...t, completed: false, completedOnDay: undefined })),
-    }));
+    const newSchedule = buildWeekSchedule(newWeek);
     const newWeekData: WeekData = {
       week: newWeek,
       schedule: newSchedule,
@@ -485,12 +581,35 @@ export default function Home() {
         const ok = parsed.every((w: any) => w && typeof w.week === 'number' && Array.isArray(w.schedule));
         if (!ok) throw new Error('Formato inválido do conteúdo');
 
-        setAllWeeks(parsed as WeekData[]);
-        const last = parsed[parsed.length - 1] as WeekData;
+        const normalized = (parsed as WeekData[]).map((week) => {
+          if (week.week >= 4) {
+            const schedule = buildWeekSchedule(week.week);
+            const totalTasks = schedule.reduce((sum, day) => sum + day.tasks.length, 0);
+            return {
+              ...week,
+              schedule,
+              completedCount: 0,
+              totalTasks,
+            };
+          }
+          return {
+            ...week,
+            schedule: week.schedule.map(day => ({
+              ...day,
+              tasks: day.tasks.map(task => ({
+                ...task,
+                completedOnDay: task.completed ? task.completedOnDay : undefined,
+              })),
+            })),
+          };
+        });
+
+        setAllWeeks(normalized);
+        const last = normalized[normalized.length - 1];
         setWeekData(last);
-        setCurrentWeek(parsed.length);
+        setCurrentWeek(normalized.length);
         // Save to localStorage (effect will run too)
-        localStorage.setItem('weekTrackerData', JSON.stringify(parsed));
+        localStorage.setItem('weekTrackerData', JSON.stringify(normalized));
         alert('Dados importados com sucesso');
       } catch (err) {
         alert('Erro ao importar: ' + String(err));
@@ -725,6 +844,15 @@ export default function Home() {
                                   style={{ fontFamily: "'Lato', sans-serif" }}
                                   className="w-full text-xs border border-[#1E3A6D] rounded px-2 py-1"
                                 />
+                                <label className="flex items-center gap-2 text-xs mt-2 text-[#1E3A6D]" style={{ fontFamily: "'Lato', sans-serif" }}>
+                                  <input
+                                    type="checkbox"
+                                    checked={editIsImprevisto}
+                                    onChange={(e) => setEditIsImprevisto(e.target.checked)}
+                                    className="form-checkbox h-4 w-4 text-yellow-500 border-[#1E3A6D]"
+                                  />
+                                  Imprevisto
+                                </label>
                                 <div className="flex gap-2">
                                   <button
                                     onClick={saveEditTask}
@@ -792,8 +920,15 @@ export default function Home() {
                               </button>
                             </div>
                           )}
-                          <div className={`flex-shrink-0 px-2 py-1 rounded text-xs font-medium ${getCategoryColor(task.category)}`}>
-                            {getCategoryLabel(task.category)}
+                          <div className="flex-shrink-0 flex flex-wrap gap-2">
+                            <div className={`px-2 py-1 rounded text-xs font-medium ${getCategoryColor(task.category)}`}>
+                              {getCategoryLabel(task.category)}
+                            </div>
+                            {task.tags?.map((tag) => (
+                              <div key={tag} className={`px-2 py-1 rounded text-xs font-medium ${getCategoryColor(tag)}`}>
+                                {getCategoryLabel(tag)}
+                              </div>
+                            ))}
                           </div>
                         </div>
                       );
@@ -822,7 +957,7 @@ export default function Home() {
                       />
                       <select
                         value={newTaskCategory}
-                        onChange={(e) => setNewTaskCategory(e.target.value as any)}
+                        onChange={(e) => setNewTaskCategory(e.target.value as TaskCategory)}
                         style={{ fontFamily: "'Lato', sans-serif" }}
                         className="w-full text-xs border border-[#1E3A6D] rounded px-2 py-1"
                       >
@@ -832,7 +967,17 @@ export default function Home() {
                         <option value="website">Site</option>
                         <option value="organization">Organização</option>
                         <option value="appointments">Trabalho</option>
+                        <option value="finances">Finanças</option>
                       </select>
+                      <label className="flex items-center gap-2 text-xs mt-2 text-[#1E3A6D]" style={{ fontFamily: "'Lato', sans-serif" }}>
+                        <input
+                          type="checkbox"
+                          checked={newTaskIsImprevisto}
+                          onChange={(e) => setNewTaskIsImprevisto(e.target.checked)}
+                          className="form-checkbox h-4 w-4 text-yellow-500 border-[#1E3A6D]"
+                        />
+                        Imprevisto
+                      </label>
                       <div className="flex gap-2">
                         <button
                           onClick={() => addTaskToDay(daySchedule.dayIndex)}
@@ -841,7 +986,10 @@ export default function Home() {
                           Adicionar
                         </button>
                         <button
-                          onClick={() => setAddingTaskDay(null)}
+                          onClick={() => {
+                            setAddingTaskDay(null);
+                            setNewTaskIsImprevisto(false);
+                          }}
                           className="flex-1 text-xs bg-gray-300 text-gray-700 px-2 py-1 rounded hover:bg-gray-400"
                         >
                           Cancelar
@@ -850,7 +998,10 @@ export default function Home() {
                     </div>
                   ) : (
                     <button
-                      onClick={() => setAddingTaskDay(daySchedule.dayIndex)}
+                      onClick={() => {
+                        setAddingTaskDay(daySchedule.dayIndex);
+                        setNewTaskIsImprevisto(false);
+                      }}
                       className="w-full flex items-center justify-center gap-2 py-2 text-sm text-[#1E3A6D] hover:bg-[#F5F1E8] rounded transition-all"
                       style={{ fontFamily: "'Lato', sans-serif" }}
                     >
