@@ -125,7 +125,8 @@ const MINIMAL_GUIDE_SCHEDULE: DaySchedule[] = [
     dayName: 'Segunda-feira',
     dayIndex: 1,
     tasks: [
-      { id: 'seg-1', label: 'Criar conteúdo (Post 1)', category: 'content', completed: false, originalDay: 1, time: '09:00 - 12:00' },
+      { id: 'seg-1', label: 'Stories Instagram', category: 'content', completed: false, originalDay: 1, time: '09:00 - 12:00' },
+      { id: 'seg-2', label: 'Desenvolvimento do site', category: 'website', completed: false, originalDay: 1, time: '12:00 - 15:00' },
     ],
   },
   {
@@ -133,7 +134,8 @@ const MINIMAL_GUIDE_SCHEDULE: DaySchedule[] = [
     dayName: 'Terça-feira',
     dayIndex: 2,
     tasks: [
-      { id: 'ter-1', label: 'Academia', category: 'fitness', completed: false, originalDay: 2, time: '19:00 - 20:00' },
+      { id: 'ter-1', label: 'Trabalho', category: 'appointments', completed: false, originalDay: 2, time: '09:00 - 19:00' },
+      { id: 'ter-2', label: 'Academia', category: 'fitness', completed: false, originalDay: 2, time: '19:00 - 20:00' },
     ],
   },
   {
@@ -141,26 +143,35 @@ const MINIMAL_GUIDE_SCHEDULE: DaySchedule[] = [
     dayName: 'Quarta-feira',
     dayIndex: 3,
     tasks: [
-      { id: 'qua-1', label: 'Estudo leve (Mestrado/Jung)', category: 'study', completed: false, originalDay: 3, time: '20:00 - 21:00' },
+      { id: 'qua-1', label: 'Trabalho', category: 'appointments', completed: false, originalDay: 3, time: '09:00 - 19:00' },
+      { id: 'qua-2', label: 'Leitura: Em Busca de Sentido (Viktor Frankl)', category: 'study', completed: false, originalDay: 3, time: '20:00 - 21:00' },
     ],
   },
   {
     day: 'quinta',
     dayName: 'Quinta-feira',
     dayIndex: 4,
-    tasks: [],
+    tasks: [
+      { id: 'qui-1', label: 'Trabalho', category: 'appointments', completed: false, originalDay: 4, time: '09:00 - 19:00' },
+      { id: 'qui-2', label: 'Academia', category: 'fitness', completed: false, originalDay: 4, time: '20:00 - 21:00' },
+    ],
   },
   {
     day: 'sexta',
     dayName: 'Sexta-feira',
     dayIndex: 5,
-    tasks: [],
+    tasks: [
+      { id: 'sex-1', label: 'Trabalho', category: 'appointments', completed: false, originalDay: 5, time: '09:00 - 19:00' },
+      { id: 'sex-2', label: 'Leitura: Em Busca de Sentido (Viktor Frankl)', category: 'study', completed: false, originalDay: 5, time: '20:00 - 21:00' },
+    ],
   },
   {
     day: 'sabado',
     dayName: 'Sábado',
     dayIndex: 6,
-    tasks: [],
+    tasks: [
+      { id: 'sab-1', label: 'Trabalho', category: 'appointments', completed: false, originalDay: 6, time: '09:00 - 19:00' },
+    ],
   },
 ];
 
