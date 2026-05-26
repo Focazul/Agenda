@@ -341,9 +341,6 @@ export default function Home() {
   const [editTags, setEditTags] = useState<TaskTag[]>([]);
   const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' ? !navigator.onLine : false);
   const importInputRef = useRef<HTMLInputElement | null>(null);
-  const [selectedTagFilters, setSelectedTagFilters] = useState<TaskTag[]>([]);
-  const [newTaskTags, setNewTaskTags] = useState<TaskTag[]>([]);
-  const [editTags, setEditTags] = useState<TaskTag[]>([]);
 
   // Carregar dados do localStorage
   useEffect(() => {
@@ -778,39 +775,6 @@ export default function Home() {
     }
   };
 
-      const target = e.target as HTMLInputElement;
-      if (!target.files || target.files.length === 0) return;
-      const file = target.files[0];
-      try {
-        const text = await file.text();
-        const parsed = JSON.parse(text);
-        if (!Array.isArray(parsed)) throw new Error('Formato inválido: esperado um array');
-        // Basic validation: each item should have week and schedule
-        const ok = parsed.every((w: any) => w && typeof w.week === 'number' && Array.isArray(w.schedule));
-        if (!ok) throw new Error('Formato inválido do conteúdo');
-
-        const normalized = (parsed as WeekData[]).map(normalizeWeekData);
-
-        if (normalized.length > 0) {
-          const last = normalized[normalized.length - 1];
-          setAllWeeks(normalized);
-          setWeekData(last);
-          setCurrentWeek(last.week);
-          // Save to localStorage (effect will run too)
-          localStorage.setItem('weekTrackerData', JSON.stringify(normalized));
-        }
-        alert('Dados importados com sucesso');
-      } catch (err) {
-        alert('Erro ao importar: ' + String(err));
-      } finally {
-        // reset input
-        target.value = '';
-      }
-    };
-
-    input.addEventListener('change', handleFile as any);
-    return () => input.removeEventListener('change', handleFile as any);
-  }, [setAllWeeks, setWeekData, setCurrentWeek]);
 
   return (
     <div className="min-h-screen bg-[#F5F1E8] py-12 px-4">
@@ -1176,15 +1140,17 @@ export default function Home() {
                             <div className={`px-2 py-1 rounded text-xs font-medium ${getCategoryColor(task.category)}`}>
                               {getCategoryLabel(task.category)}
                             </div>
-                            {task.tags?.map((tag) => (
-                              <div key={tag} className={`px-2 py-1 rounded text-xs font-medium ${getCategoryColor(tag)}`}>
-                                {getCategoryLabel(tag)}
-                              </div>
-                            ))}
+                            {task.tags?.map((tag) => {
+                              return (
+                                <div key={tag} className={`px-2 py-1 rounded text-xs font-medium ${getCategoryColor(tag)}`}>
+                                  {getCategoryLabel(tag)}
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       );
-                    })}
+                    }))}
                   </div>
 
                   {/* Add Task */}
