@@ -40,6 +40,10 @@ const TaskSchema = z.object({
   label: z.string(),
   category: z.enum(['content', 'fitness', 'study', 'website', 'organization', 'appointments', 'finances']),
   tags: z.array(z.string()).optional(),
+  completed: z.union([z.boolean(), z.string(), z.number()]),
+  completedOnDay: z.union([z.number().int().min(0).max(6), z.string()]).optional(),
+  originalDay: z.number().int().min(0).max(6).optional(),
+  time: z.string().optional(),
 });
 
 const DayScheduleSchema = z.object({
@@ -228,8 +232,10 @@ const normalizeWeekData = (week: any): WeekData => {
             ? task.category
             : 'organization',
           tags: Array.isArray(task?.tags) ? task.tags.filter((tag: any) => typeof tag === 'string') as TaskTag[] : [],
-          completed: Boolean(task?.completed),
-          completedOnDay: typeof task?.completedOnDay === 'number' ? task.completedOnDay : undefined,
+          completed: task?.completed === true || task?.completed === 'true' || task?.completed === 1 || task?.completed === '1',
+          completedOnDay: typeof task?.completedOnDay === 'number'
+            ? task.completedOnDay
+            : (typeof task?.completedOnDay === 'string' && /^[0-6]$/.test(task.completedOnDay) ? Number(task.completedOnDay) : undefined),
           originalDay: typeof task?.originalDay === 'number'
             ? task.originalDay
             : (typeof day?.dayIndex === 'number' ? day.dayIndex : index),
