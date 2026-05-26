@@ -6,7 +6,7 @@ import { z } from 'zod';
 
 type TaskCategory = 'content' | 'fitness' | 'study' | 'website' | 'organization' | 'appointments' | 'finances' | 'cozinhar' | 'mercado';
 
-type TaskTag = 'imprevistos';
+type TaskTag = string;
 
 const TASK_TYPES: TaskCategory[] = ['content', 'fitness', 'study', 'website', 'organization', 'appointments', 'finances', 'cozinhar', 'mercado'];
 const AVAILABLE_TAGS: TaskTag[] = ['imprevistos'];
@@ -15,7 +15,7 @@ interface Task {
   id: string;
   label: string;
   category: TaskCategory;
-  tags?: TaskTag[];
+  tags?: string[];
   completed: boolean;
   completedOnDay?: number; // Dia em que foi realmente feita (0-6)
   originalDay: number; // Dia original planejado
@@ -40,7 +40,7 @@ const TaskSchema = z.object({
   id: z.string(),
   label: z.string(),
   category: z.enum(['content', 'fitness', 'study', 'website', 'organization', 'appointments', 'finances', 'cozinhar', 'mercado', 'psicologo']),
-  tags: z.array(z.enum(['imprevistos'])).optional(),
+  tags: z.union([z.array(z.string()), z.string()]).optional(),
   completed: z.union([z.boolean(), z.string(), z.number()]),
   completedOnDay: z.union([z.number().int().min(0).max(6), z.string()]).optional(),
   originalDay: z.number().int().min(0).max(6).optional(),
@@ -233,7 +233,7 @@ const normalizeWeekData = (week: any): WeekData => {
             ? task.category
             : 'organization',
           tags: Array.isArray(task?.tags)
-            ? task.tags.filter((tag: any) => typeof tag === 'string').map((tag: string) => tag.trim()).filter(Boolean) as TaskTag[]
+            ? task.tags.map((tag: any) => String(tag).trim()).filter(Boolean)
             : typeof task?.tags === 'string'
             ? task.tags.split(',').map((tag: string) => tag.trim()).filter(Boolean)
             : [],
