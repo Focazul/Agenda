@@ -342,6 +342,7 @@ export default function Home() {
   const [newTaskLabel, setNewTaskLabel] = useState('');
   const [newTaskTime, setNewTaskTime] = useState('');
   const [newTaskCategory, setNewTaskCategory] = useState<TaskCategory>('organization');
+  const [editCategory, setEditCategory] = useState<TaskCategory>('organization');
   const [selectingCompletionDay, setSelectingCompletionDay] = useState<{ dayIndex: number; taskId: string } | null>(null);
   const [selectedTypeFilters, setSelectedTypeFilters] = useState<TaskCategory[]>([]);
   const [showTagFilterPanel, setShowTagFilterPanel] = useState(false);
@@ -519,6 +520,7 @@ export default function Home() {
       setEditingTask({ dayIndex, taskId });
       setEditLabel(task.label);
       setEditTime(task.time || '');
+      setEditCategory(task.category);
       setEditTags(task.tags ?? []);
     }
   };
@@ -536,6 +538,7 @@ export default function Home() {
                   ...task,
                   label: editLabel,
                   time: editTime,
+                  category: editCategory,
                   tags: editTags,
                 }
               : task
@@ -638,11 +641,11 @@ export default function Home() {
     }
 
     const updatedSchedule = weekData.schedule.map((day) => {
-      if (day.dayIndex === draggedTask.dayIndex) {
-        return { ...day, tasks: sourceTasks };
-      }
       if (day.dayIndex === targetDayIndex) {
         return { ...day, tasks: newTargetTasks };
+      }
+      if (day.dayIndex === draggedTask.dayIndex) {
+        return { ...day, tasks: sourceTasks };
       }
       return day;
     });
@@ -1100,6 +1103,22 @@ export default function Home() {
                                   style={{ fontFamily: "'Lato', sans-serif" }}
                                   className="w-full text-xs border border-[#1E3A6D] rounded px-2 py-1"
                                 />
+                                <select
+                                  value={editCategory}
+                                  onChange={(e) => setEditCategory(e.target.value as TaskCategory)}
+                                  style={{ fontFamily: "'Lato', sans-serif" }}
+                                  className="w-full text-xs border border-[#1E3A6D] rounded px-2 py-1"
+                                >
+                                  <option value="content">Conteúdo</option>
+                                  <option value="fitness">Academia</option>
+                                  <option value="study">Estudos</option>
+                                  <option value="website">Site</option>
+                                  <option value="organization">Organização</option>
+                                  <option value="appointments">Trabalho</option>
+                                  <option value="finances">Finanças</option>
+                                  <option value="cozinhar">Cozinhar</option>
+                                  <option value="mercado">Mercado</option>
+                                </select>
                                 <div className="grid grid-cols-3 gap-2">
                                   {AVAILABLE_TAGS.map((tag) => (
                                     <label key={tag} className="flex items-center gap-2 text-xs text-[#1E3A6D]" style={{ fontFamily: "'Lato', sans-serif" }}>
