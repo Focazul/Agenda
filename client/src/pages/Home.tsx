@@ -231,7 +231,11 @@ const normalizeWeekData = (week: any): WeekData => {
           category: ['content','fitness','study','website','organization','appointments','finances'].includes(task?.category)
             ? task.category
             : 'organization',
-          tags: Array.isArray(task?.tags) ? task.tags.filter((tag: any) => typeof tag === 'string') as TaskTag[] : [],
+          tags: Array.isArray(task?.tags)
+            ? task.tags.filter((tag: any) => typeof tag === 'string').map((tag: string) => tag.trim()).filter(Boolean) as TaskTag[]
+            : typeof task?.tags === 'string'
+            ? task.tags.split(',').map((tag: string) => tag.trim()).filter(Boolean)
+            : [],
           completed: task?.completed === true || task?.completed === 'true' || task?.completed === 1 || task?.completed === '1',
           completedOnDay: typeof task?.completedOnDay === 'number'
             ? task.completedOnDay
@@ -339,6 +343,7 @@ export default function Home() {
   const [newTaskCategory, setNewTaskCategory] = useState<TaskCategory>('organization');
   const [selectingCompletionDay, setSelectingCompletionDay] = useState<{ dayIndex: number; taskId: string } | null>(null);
   const [selectedTagFilters, setSelectedTagFilters] = useState<TaskTag[]>([]);
+  const [showTagFilterPanel, setShowTagFilterPanel] = useState(false);
   const [newTaskTags, setNewTaskTags] = useState<TaskTag[]>([]);
   const [editTags, setEditTags] = useState<TaskTag[]>([]);
   const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' ? !navigator.onLine : false);
@@ -902,37 +907,57 @@ export default function Home() {
                   Você está online; o histórico fica guardado no navegador.
                 </div>
               )}
-              <div className="mt-4 flex flex-wrap items-center gap-2">
-                <span className="text-sm text-[#6B7280]" style={{ fontFamily: "'Lato', sans-serif" }}>
-                  Filtrar tags:
-                </span>
-                {allAvailableTags.map((tag) => {
-                  const active = selectedTagFilters.includes(tag);
-                  return (
-                    <button
-                      key={tag}
-                      type="button"
-                      onClick={() => toggleTagFilter(tag)}
-                      className={`text-xs px-2 py-1 rounded-full border ${
-                        active
-                          ? 'bg-[#1E3A6D] text-white border-transparent'
-                          : 'bg-white text-[#1E3A6D] border-[#E5DDD0] hover:bg-[#F5F1E8]'
-                      }`}
-                      style={{ fontFamily: "'Lato', sans-serif" }}
-                    >
-                      {getCategoryLabel(tag)}
-                    </button>
-                  );
-                })}
-                {selectedTagFilters.length > 0 && (
+              <div className="mt-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="text-sm text-[#6B7280]" style={{ fontFamily: "'Lato', sans-serif" }}>
+                    Filtrar tags:
+                  </span>
                   <button
                     type="button"
-                    onClick={() => setSelectedTagFilters([])}
+                    onClick={() => setShowTagFilterPanel((prev) => !prev)}
                     className="text-xs px-2 py-1 rounded-full border bg-white text-[#1E3A6D] border-[#E5DDD0] hover:bg-[#F5F1E8]"
                     style={{ fontFamily: "'Lato', sans-serif" }}
                   >
-                    Limpar filtro
+                    {showTagFilterPanel ? 'Ocultar filtros' : 'Abrir filtros'}
                   </button>
+                  {selectedTagFilters.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedTagFilters([])}
+                      className="text-xs px-2 py-1 rounded-full border bg-white text-[#1E3A6D] border-[#E5DDD0] hover:bg-[#F5F1E8]"
+                      style={{ fontFamily: "'Lato', sans-serif" }}
+                    >
+                      Limpar filtro
+                    </button>
+                  )}
+                </div>
+                {showTagFilterPanel && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {allAvailableTags.length === 0 ? (
+                      <span className="text-sm text-[#6B7280]" style={{ fontFamily: "'Lato', sans-serif" }}>
+                        Nenhuma tag disponível
+                      </span>
+                    ) : (
+                      allAvailableTags.map((tag) => {
+                        const active = selectedTagFilters.includes(tag);
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => toggleTagFilter(tag)}
+                            className={`text-xs px-2 py-1 rounded-full border ${
+                              active
+                                ? 'bg-[#1E3A6D] text-white border-transparent'
+                                : 'bg-white text-[#1E3A6D] border-[#E5DDD0] hover:bg-[#F5F1E8]'
+                            }`}
+                            style={{ fontFamily: "'Lato', sans-serif" }}
+                          >
+                            {getCategoryLabel(tag)}
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
                 )}
               </div>
             </div>
