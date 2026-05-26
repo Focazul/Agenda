@@ -4,11 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { z } from 'zod';
 
-type TaskCategory = 'content' | 'fitness' | 'study' | 'website' | 'organization' | 'appointments' | 'finances' | 'cozinhar' | 'mercado';
+type TaskCategory = 'content' | 'fitness' | 'study' | 'website' | 'organization' | 'appointments' | 'finances' | 'cozinhar' | 'mercado' | 'psicologo';
 
 type TaskTag = string;
 
-const TASK_TYPES: TaskCategory[] = ['content', 'fitness', 'study', 'website', 'organization', 'appointments', 'finances', 'cozinhar', 'mercado'];
+const TASK_TYPES: TaskCategory[] = ['content', 'fitness', 'study', 'website', 'organization', 'appointments', 'finances', 'cozinhar', 'mercado', 'psicologo'];
 const AVAILABLE_TAGS: TaskTag[] = ['imprevistos'];
 
 interface Task {
@@ -229,7 +229,7 @@ const normalizeWeekData = (week: any): WeekData => {
         tasks: Array.isArray(day?.tasks) ? day.tasks.map((task: any, taskIndex: number) => ({
           id: typeof task?.id === 'string' ? task.id : `task-${weekNumber}-${index}-${taskIndex}`,
           label: typeof task?.label === 'string' ? task.label : '',
-          category: ['content','fitness','study','website','organization','appointments','finances'].includes(task?.category)
+          category: ['content','fitness','study','website','organization','appointments','finances','cozinhar','mercado','psicologo'].includes(task?.category)
             ? task.category
             : 'organization',
           tags: Array.isArray(task?.tags)
