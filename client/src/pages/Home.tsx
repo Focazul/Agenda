@@ -6,7 +6,7 @@ import { z } from 'zod';
 
 type TaskCategory = 'content' | 'fitness' | 'study' | 'website' | 'organization' | 'appointments' | 'finances';
 
-type TaskTag = 'imprevistos' | 'cozinhar' | 'mercado';
+type TaskTag = string;
 
 const AVAILABLE_TAGS: TaskTag[] = ['imprevistos', 'cozinhar', 'mercado'];
 
@@ -39,11 +39,7 @@ const TaskSchema = z.object({
   id: z.string(),
   label: z.string(),
   category: z.enum(['content', 'fitness', 'study', 'website', 'organization', 'appointments', 'finances']),
-  tags: z.array(z.enum(['imprevistos', 'cozinhar', 'mercado'])).optional(),
-  completed: z.boolean(),
-  completedOnDay: z.number().int().min(0).max(6).optional(),
-  originalDay: z.number().int().min(0).max(6).optional(),
-  time: z.string().optional(),
+  tags: z.array(z.string()).optional(),
 });
 
 const DayScheduleSchema = z.object({
@@ -692,6 +688,16 @@ export default function Home() {
     return labels[category] || category;
   };
 
+  const allAvailableTags = useMemo(() => {
+    const tags = new Set<TaskTag>(AVAILABLE_TAGS);
+    allWeeks.forEach((week) =>
+      week.schedule.forEach((day) =>
+        day.tasks.forEach((task) => task.tags?.forEach((tag) => tags.add(tag)))
+      )
+    );
+    return Array.from(tags).sort((a, b) => a.localeCompare(b, 'pt', { sensitivity: 'base' }));
+  }, [allWeeks]);
+
   const nextWeek = () => {
     const newWeek = currentWeek + 1;
     const newSchedule = buildWeekSchedule(newWeek);
@@ -894,7 +900,7 @@ export default function Home() {
                 <span className="text-sm text-[#6B7280]" style={{ fontFamily: "'Lato', sans-serif" }}>
                   Filtrar tags:
                 </span>
-                {AVAILABLE_TAGS.map((tag) => {
+                {allAvailableTags.map((tag) => {
                   const active = selectedTagFilters.includes(tag);
                   return (
                     <button
