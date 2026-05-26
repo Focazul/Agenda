@@ -39,7 +39,7 @@ interface WeekData {
 const TaskSchema = z.object({
   id: z.string(),
   label: z.string(),
-  category: z.enum(['content', 'fitness', 'study', 'website', 'organization', 'appointments', 'finances', 'cozinhar', 'mercado']),
+  category: z.enum(['content', 'fitness', 'study', 'website', 'organization', 'appointments', 'finances', 'cozinhar', 'mercado', 'psicologo']),
   tags: z.array(z.enum(['imprevistos'])).optional(),
   completed: z.union([z.boolean(), z.string(), z.number()]),
   completedOnDay: z.union([z.number().int().min(0).max(6), z.string()]).optional(),
@@ -700,6 +700,7 @@ export default function Home() {
       imprevistos: 'Imprevisto',
       cozinhar: 'Cozinhar',
       mercado: 'Mercado',
+      psicologo: 'Psicólogo',
     };
     return labels[category] || category;
   };
@@ -1118,6 +1119,7 @@ export default function Home() {
                                   <option value="finances">Finanças</option>
                                   <option value="cozinhar">Cozinhar</option>
                                   <option value="mercado">Mercado</option>
+                                  <option value="psicologo">Psicólogo</option>
                                 </select>
                                 <div className="grid grid-cols-3 gap-2">
                                   {AVAILABLE_TAGS.map((tag) => (
@@ -1257,6 +1259,7 @@ export default function Home() {
                         <option value="finances">Finanças</option>
                         <option value="cozinhar">Cozinhar</option>
                         <option value="mercado">Mercado</option>
+                        <option value="psicologo">Psicólogo</option>
                       </select>
                       <div className="grid grid-cols-3 gap-2">
                 {AVAILABLE_TAGS.map((tag) => (
