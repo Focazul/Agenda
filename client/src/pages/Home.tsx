@@ -1,11 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef, type ChangeEvent, type Dispatch, type SetStateAction } from 'react';
 import { Check, ChevronRight, ChevronLeft, Calendar, Plus, Trash2, Edit2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { z } from 'zod';
 
 type TaskCategory = 'content' | 'fitness' | 'study' | 'website' | 'organization' | 'appointments' | 'finances';
 
-type TaskTag = 'imprevistos';
+type TaskTag = 'imprevistos' | 'cozinhar' | 'mercado';
+
+const AVAILABLE_TAGS: TaskTag[] = ['imprevistos', 'cozinhar', 'mercado'];
 
 interface Task {
   id: string;
@@ -31,6 +34,33 @@ interface WeekData {
   completedCount: number;
   totalTasks: number;
 }
+
+const TaskSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  category: z.enum(['content', 'fitness', 'study', 'website', 'organization', 'appointments', 'finances']),
+  tags: z.array(z.enum(['imprevistos', 'cozinhar', 'mercado'])).optional(),
+  completed: z.boolean(),
+  completedOnDay: z.number().int().min(0).max(6).optional(),
+  originalDay: z.number().int().min(0).max(6).optional(),
+  time: z.string().optional(),
+});
+
+const DayScheduleSchema = z.object({
+  day: z.string(),
+  dayName: z.string(),
+  dayIndex: z.number().int().min(0).max(6),
+  tasks: z.array(TaskSchema),
+});
+
+const WeekDataSchema = z.object({
+  week: z.number().int().min(1),
+  schedule: z.array(DayScheduleSchema),
+  completedCount: z.number().int().min(0).optional(),
+  totalTasks: z.number().int().min(0).optional(),
+});
+
+const WeekDataArraySchema = z.array(WeekDataSchema);
 
 const DAYS_OF_WEEK = [
   { day: 'domingo', dayName: 'Domingo', index: 0 },
@@ -187,6 +217,98 @@ const buildWeekSchedule = (week: number) => {
       }));
 };
 
+const normalizeWeekData = (week: any): WeekData => {
+  const weekNumber = typeof week?.week === 'number' ? week.week : 1;
+
+  const schedule = Array.isArray(week?.schedule) && week.schedule.length > 0
+    ? week.schedule.map((day: any, index: number) => ({
+        day: typeof day?.day === 'string' ? day.day : DAYS_OF_WEEK[index]?.day ?? `dia-${index}`,
+        dayName: typeof day?.dayName === 'string' ? day.dayName : DAYS_OF_WEEK[index]?.dayName ?? 'Dia',
+        dayIndex: typeof day?.dayIndex === 'number' ? day.dayIndex : index,
+        tasks: Array.isArray(day?.tasks) ? day.tasks.map((task: any, taskIndex: number) => ({
+          id: typeof task?.id === 'string' ? task.id : `task-${weekNumber}-${index}-${taskIndex}`,
+          label: typeof task?.label === 'string' ? task.label : '',
+          category: ['content','fitness','study','website','organization','appointments','finances'].includes(task?.category)
+            ? task.category
+            : 'organization',
+          tags: Array.isArray(task?.tags) ? task.tags.filter((tag: any) => typeof tag === 'string') as TaskTag[] : [],
+          completed: Boolean(task?.completed),
+          completedOnDay: typeof task?.completedOnDay === 'number' ? task.completedOnDay : undefined,
+          originalDay: typeof task?.originalDay === 'number'
+            ? task.originalDay
+            : (typeof day?.dayIndex === 'number' ? day.dayIndex : index),
+          time: typeof task?.time === 'string' ? task.time : undefined,
+        })) : [] } ))
+    : buildWeekSchedule(weekNumber);
+
+  const totalTasks = schedule.reduce((sum, day) => sum + day.tasks.length, 0);
+  const completedCount = schedule.reduce((sum, day) => sum + day.tasks.filter(t => t.completed).length, 0);
+
+  return {
+    week: weekNumber,
+    schedule,
+    completedCount,
+    totalTasks,
+  };
+};
+
+function useWeekStorage(
+  allWeeks: WeekData[],
+  setAllWeeks: Dispatch<SetStateAction<WeekData[]>>,
+  setWeekData: Dispatch<SetStateAction<WeekData>>,
+  setCurrentWeek: Dispatch<SetStateAction<number>>
+) {
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('weekTrackerData');
+      if (!saved) return;
+
+      const parsed = JSON.parse(saved);
+      const validation = WeekDataArraySchema.safeParse(parsed);
+      if (!validation.success) {
+        console.warn('Dados de weekTrackerData inválidos no localStorage:', validation.error.format());
+        return;
+      }
+
+      const cleanedData = validation.data.map(normalizeWeekData);
+      if (cleanedData.length > 0) {
+        const last = cleanedData[cleanedData.length - 1];
+        setAllWeeks(cleanedData);
+        setWeekData(last);
+        setCurrentWeek(last.week);
+      }
+    } catch (err) {
+      console.warn('Erro ao carregar dados do localStorage:', err);
+    }
+  }, [setAllWeeks, setWeekData, setCurrentWeek]);
+
+  useEffect(() => {
+    try {
+      const key = 'weekTrackerData';
+      const prev = localStorage.getItem(key);
+      const newVal = JSON.stringify(allWeeks);
+      if (prev && prev !== newVal) {
+        try {
+          const backupsKey = 'weekTrackerData_backups';
+          const backupsRaw = localStorage.getItem(backupsKey);
+          let backups: string[] = backupsRaw ? JSON.parse(backupsRaw) : [];
+          const timestamp = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+          const backupKey = `${key}_backup_${timestamp}`;
+          localStorage.setItem(backupKey, prev);
+          backups.unshift(backupKey);
+          backups = backups.slice(0, 5);
+          localStorage.setItem(backupsKey, JSON.stringify(backups));
+        } catch (e) {
+          // ignore backup failures
+        }
+      }
+      localStorage.setItem(key, newVal);
+    } catch (e) {
+      console.warn('Erro ao salvar dados no localStorage:', e);
+    }
+  }, [allWeeks]);
+}
+
 export default function Home() {
   const [currentWeek, setCurrentWeek] = useState(1);
   const [weekData, setWeekData] = useState<WeekData>({
@@ -209,47 +331,42 @@ export default function Home() {
   const [editingTask, setEditingTask] = useState<{ dayIndex: number; taskId: string } | null>(null);
   const [editLabel, setEditLabel] = useState('');
   const [editTime, setEditTime] = useState('');
-  const [editIsImprevisto, setEditIsImprevisto] = useState(false);
   const [addingTaskDay, setAddingTaskDay] = useState<number | null>(null);
   const [newTaskLabel, setNewTaskLabel] = useState('');
   const [newTaskTime, setNewTaskTime] = useState('');
   const [newTaskCategory, setNewTaskCategory] = useState<TaskCategory>('organization');
-  const [newTaskIsImprevisto, setNewTaskIsImprevisto] = useState(false);
   const [selectingCompletionDay, setSelectingCompletionDay] = useState<{ dayIndex: number; taskId: string } | null>(null);
+  const [selectedTagFilters, setSelectedTagFilters] = useState<TaskTag[]>([]);
+  const [newTaskTags, setNewTaskTags] = useState<TaskTag[]>([]);
+  const [editTags, setEditTags] = useState<TaskTag[]>([]);
+  const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' ? !navigator.onLine : false);
+  const importInputRef = useRef<HTMLInputElement | null>(null);
+  const [selectedTagFilters, setSelectedTagFilters] = useState<TaskTag[]>([]);
+  const [newTaskTags, setNewTaskTags] = useState<TaskTag[]>([]);
+  const [editTags, setEditTags] = useState<TaskTag[]>([]);
 
   // Carregar dados do localStorage
   useEffect(() => {
-    const saved = localStorage.getItem('weekTrackerData');
-    if (saved) {
-      const data = JSON.parse(saved);
+    try {
+      const saved = localStorage.getItem('weekTrackerData');
+      if (!saved) return;
 
-      const cleanedData = data.map((week: WeekData) => {
-        if (week.week >= 4) {
-          const schedule = buildWeekSchedule(week.week);
-          const totalTasks = schedule.reduce((sum, day) => sum + day.tasks.length, 0);
-          return {
-            ...week,
-            schedule,
-            completedCount: 0,
-            totalTasks,
-          };
-        }
+      const parsed = JSON.parse(saved);
+      const validation = WeekDataArraySchema.safeParse(parsed);
+      if (!validation.success) {
+        console.warn('Dados de weekTrackerData inválidos no localStorage:', validation.error.format());
+        return;
+      }
 
-        return {
-          ...week,
-          schedule: week.schedule.map(day => ({
-            ...day,
-            tasks: day.tasks.map(task => ({
-              ...task,
-              completedOnDay: task.completed ? task.completedOnDay : undefined
-            }))
-          }))
-        };
-      });
-
-      setAllWeeks(cleanedData);
-      setWeekData(cleanedData[cleanedData.length - 1]);
-      setCurrentWeek(cleanedData.length);
+      const cleanedData = validation.data.map(normalizeWeekData);
+      if (cleanedData.length > 0) {
+        const last = cleanedData[cleanedData.length - 1];
+        setAllWeeks(cleanedData);
+        setWeekData(last);
+        setCurrentWeek(last.week);
+      }
+    } catch (err) {
+      console.warn('Erro ao carregar dados do localStorage:', err);
     }
   }, []);
 
@@ -396,7 +513,7 @@ export default function Home() {
       setEditingTask({ dayIndex, taskId });
       setEditLabel(task.label);
       setEditTime(task.time || '');
-      setEditIsImprevisto(task.tags?.includes('imprevistos') ?? false);
+      setEditTags(task.tags ?? []);
     }
   };
 
@@ -413,7 +530,7 @@ export default function Home() {
                   ...task,
                   label: editLabel,
                   time: editTime,
-                  tags: editIsImprevisto ? ['imprevistos'] : [],
+                  tags: editTags,
                 }
               : task
           ),
@@ -439,7 +556,7 @@ export default function Home() {
           id: `task-${Date.now()}`,
           label: newTaskLabel,
           category: newTaskCategory,
-          tags: newTaskIsImprevisto ? ['imprevistos'] : [],
+          tags: newTaskTags,
           completed: false,
           originalDay: dayIndex,
           time: newTaskTime || undefined,
@@ -463,7 +580,7 @@ export default function Home() {
     setNewTaskLabel('');
     setNewTaskTime('');
     setNewTaskCategory('organization');
-    setNewTaskIsImprevisto(false);
+    setNewTaskTags([]);
   };
 
   const handleDragStart = (dayIndex: number, taskId: string) => {
@@ -474,29 +591,52 @@ export default function Home() {
     e.preventDefault();
   };
 
-  const handleDrop = (targetDayIndex: number) => {
+  const handleDrop = (targetDayIndex: number, targetTaskId?: string, e?: React.DragEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+
     if (!draggedTask) return;
 
-    if (draggedTask.dayIndex === targetDayIndex) {
+    const sourceDay = weekData.schedule.find(day => day.dayIndex === draggedTask.dayIndex);
+    const targetDay = weekData.schedule.find(day => day.dayIndex === targetDayIndex);
+    if (!sourceDay || !targetDay) {
       setDraggedTask(null);
       return;
     }
 
-    const task = weekData.schedule[draggedTask.dayIndex].tasks.find(t => t.id === draggedTask.taskId);
-    if (!task) return;
+    const task = sourceDay.tasks.find(t => t.id === draggedTask.taskId);
+    if (!task) {
+      setDraggedTask(null);
+      return;
+    }
+
+    const sourceTasks = sourceDay.tasks.filter(t => t.id !== draggedTask.taskId);
+    const targetTasks = targetDay.tasks.filter(t => t.id !== draggedTask.taskId);
+    let newTargetTasks = [...targetTasks];
+
+    if (targetTaskId) {
+      const insertIndex = targetTasks.findIndex(t => t.id === targetTaskId);
+      if (insertIndex >= 0) {
+        newTargetTasks = [
+          ...targetTasks.slice(0, insertIndex),
+          task,
+          ...targetTasks.slice(insertIndex),
+        ];
+      } else {
+        newTargetTasks.push(task);
+      }
+    } else {
+      newTargetTasks.push(task);
+    }
 
     const updatedSchedule = weekData.schedule.map((day) => {
       if (day.dayIndex === draggedTask.dayIndex) {
-        return {
-          ...day,
-          tasks: day.tasks.filter(t => t.id !== draggedTask.taskId),
-        };
+        return { ...day, tasks: sourceTasks };
       }
       if (day.dayIndex === targetDayIndex) {
-        return {
-          ...day,
-          tasks: [...day.tasks, task],
-        };
+        return { ...day, tasks: newTargetTasks };
       }
       return day;
     });
@@ -533,6 +673,8 @@ export default function Home() {
       appointments: 'bg-indigo-100 text-indigo-700',
       finances: 'bg-teal-100 text-teal-700',
       imprevistos: 'bg-yellow-100 text-yellow-800',
+      cozinhar: 'bg-pink-100 text-pink-700',
+      mercado: 'bg-lime-100 text-lime-700',
     };
     return colors[category] || 'bg-gray-100 text-gray-700';
   };
@@ -547,6 +689,8 @@ export default function Home() {
       appointments: 'Trabalho',
       finances: 'Finanças',
       imprevistos: 'Imprevisto',
+      cozinhar: 'Cozinhar',
+      mercado: 'Mercado',
     };
     return labels[category] || category;
   };
@@ -575,12 +719,65 @@ export default function Home() {
     }
   };
 
-  // Import file handler: listens to hidden file input and loads JSON data
-  useEffect(() => {
-    const input = document.getElementById('importFile') as HTMLInputElement | null;
-    if (!input) return;
+  const toggleTagFilter = (tag: TaskTag) => {
+    setSelectedTagFilters((prev) =>
+      prev.includes(tag) ? prev.filter((selected) => selected !== tag) : [...prev, tag]
+    );
+  };
 
-    const handleFile = async (e: Event) => {
+  const displayedSchedule = useMemo(
+    () =>
+      weekData.schedule.map((day) => ({
+        ...day,
+        tasks: day.tasks.filter((task) =>
+          selectedTagFilters.length === 0 || task.tags?.some((tag) => selectedTagFilters.includes(tag))
+        ),
+      })),
+    [weekData.schedule, selectedTagFilters]
+  );
+
+  useEffect(() => {
+    const handleOnline = () => setIsOffline(false);
+    const handleOffline = () => setIsOffline(true);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  const handleFileImport = async (e: ChangeEvent<HTMLInputElement>) => {
+    const target = e.target;
+    if (!target.files || target.files.length === 0) return;
+    const file = target.files[0];
+
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const validation = WeekDataArraySchema.safeParse(parsed);
+      if (!validation.success) {
+        throw new Error('Formato inválido: ' + JSON.stringify(validation.error.format(), null, 2));
+      }
+
+      const normalized = validation.data.map(normalizeWeekData);
+      if (normalized.length === 0) {
+        throw new Error('Nenhuma semana encontrada no arquivo importado');
+      }
+
+      const last = normalized[normalized.length - 1];
+      setAllWeeks(normalized);
+      setWeekData(last);
+      setCurrentWeek(last.week);
+      localStorage.setItem('weekTrackerData', JSON.stringify(normalized));
+      alert('Dados importados com sucesso');
+    } catch (err) {
+      alert('Erro ao importar: ' + String(err));
+    } finally {
+      target.value = '';
+    }
+  };
+
       const target = e.target as HTMLInputElement;
       if (!target.files || target.files.length === 0) return;
       const file = target.files[0];
@@ -592,35 +789,16 @@ export default function Home() {
         const ok = parsed.every((w: any) => w && typeof w.week === 'number' && Array.isArray(w.schedule));
         if (!ok) throw new Error('Formato inválido do conteúdo');
 
-        const normalized = (parsed as WeekData[]).map((week) => {
-          if (week.week >= 4) {
-            const schedule = buildWeekSchedule(week.week);
-            const totalTasks = schedule.reduce((sum, day) => sum + day.tasks.length, 0);
-            return {
-              ...week,
-              schedule,
-              completedCount: 0,
-              totalTasks,
-            };
-          }
-          return {
-            ...week,
-            schedule: week.schedule.map(day => ({
-              ...day,
-              tasks: day.tasks.map(task => ({
-                ...task,
-                completedOnDay: task.completed ? task.completedOnDay : undefined,
-              })),
-            })),
-          };
-        });
+        const normalized = (parsed as WeekData[]).map(normalizeWeekData);
 
-        setAllWeeks(normalized);
-        const last = normalized[normalized.length - 1];
-        setWeekData(last);
-        setCurrentWeek(normalized.length);
-        // Save to localStorage (effect will run too)
-        localStorage.setItem('weekTrackerData', JSON.stringify(normalized));
+        if (normalized.length > 0) {
+          const last = normalized[normalized.length - 1];
+          setAllWeeks(normalized);
+          setWeekData(last);
+          setCurrentWeek(last.week);
+          // Save to localStorage (effect will run too)
+          localStorage.setItem('weekTrackerData', JSON.stringify(normalized));
+        }
         alert('Dados importados com sucesso');
       } catch (err) {
         alert('Erro ao importar: ' + String(err));
@@ -676,7 +854,13 @@ export default function Home() {
               </h1>
 
               <div className="mt-3 flex items-center gap-2">
-                <input id="importFile" type="file" accept="application/json" className="hidden" />
+                <input
+                  ref={importInputRef}
+                  type="file"
+                  accept="application/json"
+                  className="hidden"
+                  onChange={handleFileImport}
+                />
 
                 <button
                   id="export-button"
@@ -714,8 +898,7 @@ export default function Home() {
                 <button
                   id="import-button"
                   onClick={() => {
-                    const input = document.getElementById('importFile') as HTMLInputElement | null;
-                    if (input) input.click();
+                    importInputRef.current?.click();
                   }}
                   style={{
                     fontFamily: "'Lato', sans-serif",
@@ -734,6 +917,48 @@ export default function Home() {
               <p style={{ fontFamily: "'Lato', sans-serif" }} className="text-lg text-[#6B7280] mt-2">
                 Consistência sem sobrecarga
               </p>
+              {isOffline ? (
+                <div className="mt-3 inline-flex items-center gap-2 rounded-full bg-yellow-100 px-3 py-2 text-sm text-yellow-800">
+                  Offline: edições são salvas localmente no navegador.
+                </div>
+              ) : (
+                <div className="mt-3 text-sm text-[#4B5563]" style={{ fontFamily: "'Lato', sans-serif" }}>
+                  Você está online; o histórico fica guardado no navegador.
+                </div>
+              )}
+              <div className="mt-4 flex flex-wrap items-center gap-2">
+                <span className="text-sm text-[#6B7280]" style={{ fontFamily: "'Lato', sans-serif" }}>
+                  Filtrar tags:
+                </span>
+                {AVAILABLE_TAGS.map((tag) => {
+                  const active = selectedTagFilters.includes(tag);
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => toggleTagFilter(tag)}
+                      className={`text-xs px-2 py-1 rounded-full border ${
+                        active
+                          ? 'bg-[#1E3A6D] text-white border-transparent'
+                          : 'bg-white text-[#1E3A6D] border-[#E5DDD0] hover:bg-[#F5F1E8]'
+                      }`}
+                      style={{ fontFamily: "'Lato', sans-serif" }}
+                    >
+                      {getCategoryLabel(tag)}
+                    </button>
+                  );
+                })}
+                {selectedTagFilters.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTagFilters([])}
+                    className="text-xs px-2 py-1 rounded-full border bg-white text-[#1E3A6D] border-[#E5DDD0] hover:bg-[#F5F1E8]"
+                    style={{ fontFamily: "'Lato', sans-serif" }}
+                  >
+                    Limpar filtro
+                  </button>
+                )}
+              </div>
             </div>
             <div className="text-right">
               <div className="flex items-start justify-end gap-3">
@@ -762,7 +987,7 @@ export default function Home() {
 
         {/* Days Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
-          {weekData.schedule.map((daySchedule) => {
+          {displayedSchedule.map((daySchedule) => {
             const dayCompletedCount = daySchedule.tasks.filter(t => t.completed).length;
             const dayProgressPercentage = daySchedule.tasks.length > 0 ? Math.round((dayCompletedCount / daySchedule.tasks.length) * 100) : 0;
 
@@ -771,7 +996,7 @@ export default function Home() {
                 key={daySchedule.day}
                 className="bg-white border-0 shadow-sm overflow-hidden"
                 onDragOver={handleDragOver}
-                onDrop={() => handleDrop(daySchedule.dayIndex)}
+                onDrop={(e) => handleDrop(daySchedule.dayIndex, undefined, e)}
               >
                 <div className="p-6">
                   {/* Day Header */}
@@ -792,14 +1017,20 @@ export default function Home() {
 
                   {/* Tasks */}
                   <div className="space-y-2 mb-4">
-                    {daySchedule.tasks.map((task) => {
-                      const wasDoneOnDifferentDay = task.completed && task.completedOnDay !== undefined && task.completedOnDay !== task.originalDay;
-
+                        {daySchedule.tasks.length === 0 ? (
+                          <p style={{ fontFamily: "'Lato', sans-serif" }} className="text-sm text-[#6B7280]">
+                            Nenhuma tarefa corresponde ao filtro de tags selecionado.
+                          </p>
+                        ) : (
+                          daySchedule.tasks.map((task) => {
+                            const wasDoneOnDifferentDay = task.completed && task.completedOnDay !== undefined && task.completedOnDay !== task.originalDay;
                       return (
                         <div
                           key={task.id}
                           draggable
                           onDragStart={() => handleDragStart(daySchedule.dayIndex, task.id)}
+                          onDragOver={handleDragOver}
+                          onDrop={(e) => handleDrop(daySchedule.dayIndex, task.id, e)}
                           className={`flex items-start gap-3 p-3 rounded-lg cursor-move transition-all ${
                             task.completed
                               ? wasDoneOnDifferentDay
@@ -855,15 +1086,25 @@ export default function Home() {
                                   style={{ fontFamily: "'Lato', sans-serif" }}
                                   className="w-full text-xs border border-[#1E3A6D] rounded px-2 py-1"
                                 />
-                                <label className="flex items-center gap-2 text-xs mt-2 text-[#1E3A6D]" style={{ fontFamily: "'Lato', sans-serif" }}>
-                                  <input
-                                    type="checkbox"
-                                    checked={editIsImprevisto}
-                                    onChange={(e) => setEditIsImprevisto(e.target.checked)}
-                                    className="form-checkbox h-4 w-4 text-yellow-500 border-[#1E3A6D]"
-                                  />
-                                  Imprevisto
-                                </label>
+                                <div className="grid grid-cols-3 gap-2">
+                                  {AVAILABLE_TAGS.map((tag) => (
+                                    <label key={tag} className="flex items-center gap-2 text-xs text-[#1E3A6D]" style={{ fontFamily: "'Lato', sans-serif" }}>
+                                      <input
+                                        type="checkbox"
+                                        checked={editTags.includes(tag)}
+                                        onChange={(e) => {
+                                          if (e.target.checked) {
+                                            setEditTags((prev) => [...prev, tag]);
+                                          } else {
+                                            setEditTags((prev) => prev.filter((selected) => selected !== tag));
+                                          }
+                                        }}
+                                        className="form-checkbox h-4 w-4 text-yellow-500 border-[#1E3A6D]"
+                                      />
+                                      {getCategoryLabel(tag)}
+                                    </label>
+                                  ))}
+                                </div>
                                 <div className="flex gap-2">
                                   <button
                                     onClick={saveEditTask}
@@ -980,15 +1221,25 @@ export default function Home() {
                         <option value="appointments">Trabalho</option>
                         <option value="finances">Finanças</option>
                       </select>
-                      <label className="flex items-center gap-2 text-xs mt-2 text-[#1E3A6D]" style={{ fontFamily: "'Lato', sans-serif" }}>
-                        <input
-                          type="checkbox"
-                          checked={newTaskIsImprevisto}
-                          onChange={(e) => setNewTaskIsImprevisto(e.target.checked)}
-                          className="form-checkbox h-4 w-4 text-yellow-500 border-[#1E3A6D]"
-                        />
-                        Imprevisto
-                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                {AVAILABLE_TAGS.map((tag) => (
+                  <label key={tag} className="flex items-center gap-2 text-xs text-[#1E3A6D]" style={{ fontFamily: "'Lato', sans-serif" }}>
+                    <input
+                      type="checkbox"
+                      checked={newTaskTags.includes(tag)}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setNewTaskTags((prev) => [...prev, tag]);
+                        } else {
+                          setNewTaskTags((prev) => prev.filter((selected) => selected !== tag));
+                        }
+                      }}
+                      className="form-checkbox h-4 w-4 text-yellow-500 border-[#1E3A6D]"
+                    />
+                    {getCategoryLabel(tag)}
+                  </label>
+                ))}
+              </div>
                       <div className="flex gap-2">
                         <button
                           onClick={() => addTaskToDay(daySchedule.dayIndex)}
@@ -999,7 +1250,7 @@ export default function Home() {
                         <button
                           onClick={() => {
                             setAddingTaskDay(null);
-                            setNewTaskIsImprevisto(false);
+                            setNewTaskTags([]);
                           }}
                           className="flex-1 text-xs bg-gray-300 text-gray-700 px-2 py-1 rounded hover:bg-gray-400"
                         >
@@ -1011,7 +1262,7 @@ export default function Home() {
                     <button
                       onClick={() => {
                         setAddingTaskDay(daySchedule.dayIndex);
-                        setNewTaskIsImprevisto(false);
+                        setNewTaskTags([]);
                       }}
                       className="w-full flex items-center justify-center gap-2 py-2 text-sm text-[#1E3A6D] hover:bg-[#F5F1E8] rounded transition-all"
                       style={{ fontFamily: "'Lato', sans-serif" }}
