@@ -4,11 +4,12 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { z } from 'zod';
 
-type TaskCategory = 'content' | 'fitness' | 'study' | 'website' | 'organization' | 'appointments' | 'finances';
+type TaskCategory = 'content' | 'fitness' | 'study' | 'website' | 'organization' | 'appointments' | 'finances' | 'cozinhar' | 'mercado';
 
-type TaskTag = string;
+type TaskTag = 'imprevistos';
 
-const AVAILABLE_TAGS: TaskTag[] = ['imprevistos', 'cozinhar', 'mercado'];
+const TASK_TYPES: TaskCategory[] = ['content', 'fitness', 'study', 'website', 'organization', 'appointments', 'finances', 'cozinhar', 'mercado'];
+const AVAILABLE_TAGS: TaskTag[] = ['imprevistos'];
 
 interface Task {
   id: string;
@@ -38,8 +39,8 @@ interface WeekData {
 const TaskSchema = z.object({
   id: z.string(),
   label: z.string(),
-  category: z.enum(['content', 'fitness', 'study', 'website', 'organization', 'appointments', 'finances']),
-  tags: z.array(z.string()).optional(),
+  category: z.enum(['content', 'fitness', 'study', 'website', 'organization', 'appointments', 'finances', 'cozinhar', 'mercado']),
+  tags: z.array(z.enum(['imprevistos'])).optional(),
   completed: z.union([z.boolean(), z.string(), z.number()]),
   completedOnDay: z.union([z.number().int().min(0).max(6), z.string()]).optional(),
   originalDay: z.number().int().min(0).max(6).optional(),
@@ -342,8 +343,9 @@ export default function Home() {
   const [newTaskTime, setNewTaskTime] = useState('');
   const [newTaskCategory, setNewTaskCategory] = useState<TaskCategory>('organization');
   const [selectingCompletionDay, setSelectingCompletionDay] = useState<{ dayIndex: number; taskId: string } | null>(null);
-  const [selectedTagFilters, setSelectedTagFilters] = useState<TaskTag[]>([]);
+  const [selectedTypeFilters, setSelectedTypeFilters] = useState<TaskCategory[]>([]);
   const [showTagFilterPanel, setShowTagFilterPanel] = useState(false);
+  const [filterImprevisto, setFilterImprevisto] = useState(false);
   const [newTaskTags, setNewTaskTags] = useState<TaskTag[]>([]);
   const [editTags, setEditTags] = useState<TaskTag[]>([]);
   const [isOffline, setIsOffline] = useState(() => typeof navigator !== 'undefined' ? !navigator.onLine : false);
@@ -699,14 +701,14 @@ export default function Home() {
     return labels[category] || category;
   };
 
-  const allAvailableTags = useMemo(() => {
-    const tags = new Set<TaskTag>(AVAILABLE_TAGS);
+  const allAvailableTaskTypes = useMemo(() => {
+    const types = new Set<TaskCategory>(TASK_TYPES);
     allWeeks.forEach((week) =>
       week.schedule.forEach((day) =>
-        day.tasks.forEach((task) => task.tags?.forEach((tag) => tags.add(tag)))
+        day.tasks.forEach((task) => types.add(task.category))
       )
     );
-    return Array.from(tags).sort((a, b) => a.localeCompare(b, 'pt', { sensitivity: 'base' }));
+    return Array.from(types).sort((a, b) => getCategoryLabel(a).localeCompare(getCategoryLabel(b), 'pt', { sensitivity: 'base' }));
   }, [allWeeks]);
 
   const nextWeek = () => {
@@ -733,9 +735,9 @@ export default function Home() {
     }
   };
 
-  const toggleTagFilter = (tag: TaskTag) => {
-    setSelectedTagFilters((prev) =>
-      prev.includes(tag) ? prev.filter((selected) => selected !== tag) : [...prev, tag]
+  const toggleTypeFilter = (type: TaskCategory) => {
+    setSelectedTypeFilters((prev) =>
+      prev.includes(type) ? prev.filter((selected) => selected !== type) : [...prev, type]
     );
   };
 
@@ -743,11 +745,13 @@ export default function Home() {
     () =>
       weekData.schedule.map((day) => ({
         ...day,
-        tasks: day.tasks.filter((task) =>
-          selectedTagFilters.length === 0 || task.tags?.some((tag) => selectedTagFilters.includes(tag))
-        ),
+        tasks: day.tasks.filter((task) => {
+          const matchesType = selectedTypeFilters.length === 0 || selectedTypeFilters.includes(task.category);
+          const matchesImprevisto = !filterImprevisto || task.tags?.includes('imprevistos');
+          return matchesType && matchesImprevisto;
+        }),
       })),
-    [weekData.schedule, selectedTagFilters]
+    [weekData.schedule, selectedTypeFilters, filterImprevisto]
   );
 
   useEffect(() => {
@@ -910,7 +914,7 @@ export default function Home() {
               <div className="mt-4">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="text-sm text-[#6B7280]" style={{ fontFamily: "'Lato', sans-serif" }}>
-                    Filtrar tags:
+                    Filtrar tipos:
                   </span>
                   <button
                     type="button"
@@ -920,10 +924,19 @@ export default function Home() {
                   >
                     {showTagFilterPanel ? 'Ocultar filtros' : 'Abrir filtros'}
                   </button>
-                  {selectedTagFilters.length > 0 && (
+                  <label className="flex items-center gap-2 text-sm text-[#1E3A6D]" style={{ fontFamily: "'Lato', sans-serif" }}>
+                    <input
+                      type="checkbox"
+                      checked={filterImprevisto}
+                      onChange={() => setFilterImprevisto((prev) => !prev)}
+                      className="form-checkbox h-4 w-4 text-yellow-500"
+                    />
+                    Imprevisto
+                  </label>
+                  {selectedTypeFilters.length > 0 && (
                     <button
                       type="button"
-                      onClick={() => setSelectedTagFilters([])}
+                      onClick={() => setSelectedTypeFilters([])}
                       className="text-xs px-2 py-1 rounded-full border bg-white text-[#1E3A6D] border-[#E5DDD0] hover:bg-[#F5F1E8]"
                       style={{ fontFamily: "'Lato', sans-serif" }}
                     >
@@ -933,18 +946,18 @@ export default function Home() {
                 </div>
                 {showTagFilterPanel && (
                   <div className="mt-3 flex flex-wrap gap-2">
-                    {allAvailableTags.length === 0 ? (
+                    {allAvailableTaskTypes.length === 0 ? (
                       <span className="text-sm text-[#6B7280]" style={{ fontFamily: "'Lato', sans-serif" }}>
-                        Nenhuma tag disponível
+                        Nenhum tipo disponível
                       </span>
                     ) : (
-                      allAvailableTags.map((tag) => {
-                        const active = selectedTagFilters.includes(tag);
+                      allAvailableTaskTypes.map((type) => {
+                        const active = selectedTypeFilters.includes(type);
                         return (
                           <button
-                            key={tag}
+                            key={type}
                             type="button"
-                            onClick={() => toggleTagFilter(tag)}
+                            onClick={() => toggleTypeFilter(type)}
                             className={`text-xs px-2 py-1 rounded-full border ${
                               active
                                 ? 'bg-[#1E3A6D] text-white border-transparent'
@@ -952,7 +965,7 @@ export default function Home() {
                             }`}
                             style={{ fontFamily: "'Lato', sans-serif" }}
                           >
-                            {getCategoryLabel(tag)}
+                            {getCategoryLabel(type)}
                           </button>
                         );
                       })
@@ -1223,6 +1236,8 @@ export default function Home() {
                         <option value="organization">Organização</option>
                         <option value="appointments">Trabalho</option>
                         <option value="finances">Finanças</option>
+                        <option value="cozinhar">Cozinhar</option>
+                        <option value="mercado">Mercado</option>
                       </select>
                       <div className="grid grid-cols-3 gap-2">
                 {AVAILABLE_TAGS.map((tag) => (
