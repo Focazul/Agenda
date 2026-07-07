@@ -88,10 +88,10 @@ const INITIAL_SCHEDULE: DaySchedule[] = [
       dayName: 'Domingo',
       dayIndex: 0,
       tasks: [
+        createMilaTask(0),
           { id: 'dom-1', label: 'Cozinhar base da semana', category: 'organization', completed: false, originalDay: 0, time: '14:00 - 16:00' },
           { id: 'dom-2', label: 'Organização doméstica', category: 'organization', completed: false, originalDay: 0, time: '16:00 - 17:00' },
           { id: 'dom-3', label: 'Planejamento leve', category: 'organization', completed: false, originalDay: 0, time: '17:00 - 18:00' },
-        createMilaTask(0),
       ],
     },
     {
@@ -99,10 +99,10 @@ const INITIAL_SCHEDULE: DaySchedule[] = [
       dayName: 'Segunda-feira',
       dayIndex: 1,
       tasks: [
+        createMilaTask(1),
           { id: 'seg-1', label: 'Planejamento semanal detalhado', category: 'organization', completed: false, originalDay: 1, time: '14:00 - 14:45' },
           { id: 'seg-2', label: 'Revisar semana anterior', category: 'organization', completed: false, originalDay: 1, time: '14:45 - 15:15' },
           { id: 'seg-3', label: 'Leitura profunda (Frankl, Jung ou artigos)', category: 'study', completed: false, originalDay: 1, time: '15:30 - 17:00' },
-        createMilaTask(1),
           { id: 'seg-4', label: 'Desenvolvimento da clínica (site, blog, WhatsApp ou estrutura profissional)', category: 'website', completed: false, originalDay: 1, time: '17:00 - 20:00' },
       ],
     },
@@ -111,9 +111,9 @@ const INITIAL_SCHEDULE: DaySchedule[] = [
       dayName: 'Terça-feira',
       dayIndex: 2,
       tasks: [
+        createMilaTask(2),
           { id: 'ter-1', label: 'Academia / atividade física', category: 'fitness', completed: false, originalDay: 2, time: '14:00 - 15:00' },
           { id: 'ter-2', label: 'Leitura profunda (Frankl, Jung ou artigos)', category: 'study', completed: false, originalDay: 2, time: '15:00 - 16:00' },
-        createMilaTask(2),
         { id: 'ter-3', label: 'Trabalho / clínica (conforme agenda)', category: 'appointments', completed: false, originalDay: 2, time: 'Conforme agenda' },
           { id: 'ter-4', label: 'Estudo de artigo, mestrado, reflexão clínica ou conteúdo', category: 'study', completed: false, originalDay: 2, time: '17:00 - 19:00' },
       ],
@@ -123,8 +123,8 @@ const INITIAL_SCHEDULE: DaySchedule[] = [
       dayName: 'Quarta-feira',
       dayIndex: 3,
       tasks: [
-          { id: 'qua-1', label: 'Estudo profundo (Frankl, Jung, artigos ou mestrado)', category: 'study', completed: false, originalDay: 3, time: '14:00 - 15:30' },
         createMilaTask(3),
+          { id: 'qua-1', label: 'Estudo profundo (Frankl, Jung, artigos ou mestrado)', category: 'study', completed: false, originalDay: 3, time: '14:00 - 15:30' },
         { id: 'qua-2', label: 'Trabalho / clínica (conforme agenda)', category: 'appointments', completed: false, originalDay: 3, time: 'Conforme agenda' },
           { id: 'qua-3', label: 'Criar post, escrever reflexão ou melhorar o site', category: 'content', completed: false, originalDay: 3, time: '16:00 - 18:00' },
       ],
@@ -134,8 +134,8 @@ const INITIAL_SCHEDULE: DaySchedule[] = [
       dayName: 'Quinta-feira',
       dayIndex: 4,
       tasks: [
-          { id: 'qui-1', label: 'Academia / atividade física', category: 'fitness', completed: false, originalDay: 4, time: '14:00 - 15:00' },
         createMilaTask(4),
+          { id: 'qui-1', label: 'Academia / atividade física', category: 'fitness', completed: false, originalDay: 4, time: '14:00 - 15:00' },
         { id: 'qui-2', label: 'Trabalho / clínica (conforme agenda)', category: 'appointments', completed: false, originalDay: 4, time: 'Conforme agenda' },
           { id: 'qui-3', label: 'Networking, pesquisa de clínicas/convênios ou plataformas', category: 'organization', completed: false, originalDay: 4, time: '16:00 - 18:00' },
       ],
@@ -147,8 +147,8 @@ const INITIAL_SCHEDULE: DaySchedule[] = [
       tasks: [
         createMilaTask(5),
         { id: 'sex-1', label: 'Trabalho / clínica (conforme agenda)', category: 'appointments', completed: false, originalDay: 5, time: 'Conforme agenda' },
-          { id: 'sex-2', label: 'Registrar reflexões, atualizar site ou criar post', category: 'content', completed: false, originalDay: 5, time: '15:00 - 17:00' },
-          { id: 'sex-3', label: 'Leitura leve ou revisão da semana', category: 'study', completed: false, originalDay: 5, time: '20:00 - 21:00' },
+        { id: 'sex-2', label: 'Registrar reflexões, atualizar site ou criar post', category: 'content', completed: false, originalDay: 5, time: '15:00 - 17:00' },
+        { id: 'sex-3', label: 'Leitura leve ou revisão da semana', category: 'study', completed: false, originalDay: 5, time: '20:00 - 21:00' },
       ],
     },
     {
@@ -158,7 +158,7 @@ const INITIAL_SCHEDULE: DaySchedule[] = [
       tasks: [
         createMilaTask(6),
         { id: 'sab-1', label: 'Trabalho / clínica (conforme agenda)', category: 'appointments', completed: false, originalDay: 6, time: 'Conforme agenda' },
-          { id: 'sab-2', label: 'Flexível: descanso, leitura leve ou lazer', category: 'organization', completed: false, originalDay: 6, time: '19:00 - 21:00' },
+        { id: 'sab-2', label: 'Flexível: descanso, leitura leve ou lazer', category: 'organization', completed: false, originalDay: 6, time: '19:00 - 21:00' },
       ],
     },
   ];
@@ -169,10 +169,10 @@ const INITIAL_SCHEDULE: DaySchedule[] = [
       dayName: 'Domingo',
       dayIndex: 0,
       tasks: [
+        createMilaTask(0),
           { id: 'dom-1', label: 'Cozinhar base da semana', category: 'organization', completed: false, originalDay: 0, time: '14:00 - 16:00' },
           { id: 'dom-2', label: 'Organização doméstica', category: 'organization', completed: false, originalDay: 0, time: '16:00 - 17:00' },
           { id: 'dom-3', label: 'Planejamento leve', category: 'organization', completed: false, originalDay: 0, time: '17:00 - 18:00' },
-        createMilaTask(0),
       ],
     },
     {
@@ -180,10 +180,10 @@ const INITIAL_SCHEDULE: DaySchedule[] = [
       dayName: 'Segunda-feira',
       dayIndex: 1,
       tasks: [
+        createMilaTask(1),
           { id: 'seg-1', label: 'Planejamento semanal detalhado', category: 'organization', completed: false, originalDay: 1, time: '14:00 - 14:45' },
           { id: 'seg-2', label: 'Revisar semana anterior', category: 'organization', completed: false, originalDay: 1, time: '14:45 - 15:15' },
           { id: 'seg-3', label: 'Leitura profunda (Frankl, Jung ou artigos)', category: 'study', completed: false, originalDay: 1, time: '15:30 - 17:00' },
-        createMilaTask(1),
           { id: 'seg-4', label: 'Desenvolvimento da clínica (site, blog, WhatsApp ou estrutura profissional)', category: 'website', completed: false, originalDay: 1, time: '17:00 - 20:00' },
       ],
     },
@@ -192,9 +192,9 @@ const INITIAL_SCHEDULE: DaySchedule[] = [
       dayName: 'Terça-feira',
       dayIndex: 2,
       tasks: [
+        createMilaTask(2),
           { id: 'ter-1', label: 'Academia / atividade física', category: 'fitness', completed: false, originalDay: 2, time: '14:00 - 15:00' },
           { id: 'ter-2', label: 'Leitura profunda (Frankl, Jung ou artigos)', category: 'study', completed: false, originalDay: 2, time: '15:00 - 16:00' },
-        createMilaTask(2),
         { id: 'ter-3', label: 'Trabalho / clínica (conforme agenda)', category: 'appointments', completed: false, originalDay: 2, time: 'Conforme agenda' },
           { id: 'ter-4', label: 'Estudo de artigo, mestrado, reflexão clínica ou conteúdo', category: 'study', completed: false, originalDay: 2, time: '17:00 - 19:00' },
       ],
@@ -204,8 +204,8 @@ const INITIAL_SCHEDULE: DaySchedule[] = [
       dayName: 'Quarta-feira',
       dayIndex: 3,
       tasks: [
-          { id: 'qua-1', label: 'Estudo profundo (Frankl, Jung, artigos ou mestrado)', category: 'study', completed: false, originalDay: 3, time: '14:00 - 15:30' },
         createMilaTask(3),
+          { id: 'qua-1', label: 'Estudo profundo (Frankl, Jung, artigos ou mestrado)', category: 'study', completed: false, originalDay: 3, time: '14:00 - 15:30' },
         { id: 'qua-2', label: 'Trabalho / clínica (conforme agenda)', category: 'appointments', completed: false, originalDay: 3, time: 'Conforme agenda' },
           { id: 'qua-3', label: 'Criar post, escrever reflexão ou melhorar o site', category: 'content', completed: false, originalDay: 3, time: '16:00 - 18:00' },
       ],
@@ -215,8 +215,8 @@ const INITIAL_SCHEDULE: DaySchedule[] = [
       dayName: 'Quinta-feira',
       dayIndex: 4,
       tasks: [
-          { id: 'qui-1', label: 'Academia / atividade física', category: 'fitness', completed: false, originalDay: 4, time: '14:00 - 15:00' },
         createMilaTask(4),
+          { id: 'qui-1', label: 'Academia / atividade física', category: 'fitness', completed: false, originalDay: 4, time: '14:00 - 15:00' },
         { id: 'qui-2', label: 'Trabalho / clínica (conforme agenda)', category: 'appointments', completed: false, originalDay: 4, time: 'Conforme agenda' },
           { id: 'qui-3', label: 'Networking, pesquisa de clínicas/convênios ou plataformas', category: 'organization', completed: false, originalDay: 4, time: '16:00 - 18:00' },
       ],
