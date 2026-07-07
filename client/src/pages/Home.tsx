@@ -257,42 +257,52 @@ const INITIAL_SCHEDULE: DaySchedule[] = [
           tasks: day.tasks.map(task => ({ ...task, completed: false, completedOnDay: undefined })),
         }));
   };
-    ? week.schedule.map((day: any, index: number) => ({
-        day: typeof day?.day === 'string' ? day.day : DAYS_OF_WEEK[index]?.day ?? `dia-${index}`,
-        dayName: typeof day?.dayName === 'string' ? day.dayName : DAYS_OF_WEEK[index]?.dayName ?? 'Dia',
-        dayIndex: typeof day?.dayIndex === 'number' ? day.dayIndex : index,
-        tasks: Array.isArray(day?.tasks) ? day.tasks.map((task: any, taskIndex: number) => ({
-          id: typeof task?.id === 'string' ? task.id : `task-${weekNumber}-${index}-${taskIndex}`,
-          label: typeof task?.label === 'string' ? task.label : '',
-          category: ['content','fitness','study','website','organization','appointments','finances','cozinhar','mercado','psicologo'].includes(task?.category)
-            ? task.category
-            : 'organization',
-          tags: Array.isArray(task?.tags)
-            ? task.tags.map((tag: any) => String(tag).trim()).filter(Boolean)
-            : typeof task?.tags === 'string'
-            ? task.tags.split(',').map((tag: string) => tag.trim()).filter(Boolean)
-            : [],
-          completed: task?.completed === true || task?.completed === 'true' || task?.completed === 1 || task?.completed === '1',
-          completedOnDay: typeof task?.completedOnDay === 'number'
-            ? task.completedOnDay
-            : (typeof task?.completedOnDay === 'string' && /^[0-6]$/.test(task.completedOnDay) ? Number(task.completedOnDay) : undefined),
-          originalDay: typeof task?.originalDay === 'number'
-            ? task.originalDay
-            : (typeof day?.dayIndex === 'number' ? day.dayIndex : index),
-          time: typeof task?.time === 'string' ? task.time : undefined,
-        })) : [] } ))
-    : buildWeekSchedule(weekNumber);
+  const normalizeWeekData = (week: any): WeekData => {
+    const weekNumber = typeof week?.week === 'number' ? week.week : 1;
 
-  const totalTasks = schedule.reduce((sum, day) => sum + day.tasks.length, 0);
-  const completedCount = schedule.reduce((sum, day) => sum + day.tasks.filter(t => t.completed).length, 0);
+    const schedule: DaySchedule[] = Array.isArray(week?.schedule) && week.schedule.length > 0
+      ? week.schedule.map((day: any, index: number) => ({
+          day: typeof day?.day === 'string' ? day.day : DAYS_OF_WEEK[index]?.day ?? `dia-${index}`,
+          dayName: typeof day?.dayName === 'string' ? day.dayName : DAYS_OF_WEEK[index]?.dayName ?? 'Dia',
+          dayIndex: typeof day?.dayIndex === 'number' ? day.dayIndex : index,
+          tasks: Array.isArray(day?.tasks) ? day.tasks.map((task: any, taskIndex: number) => ({
+            id: typeof task?.id === 'string' ? task.id : `task-${weekNumber}-${index}-${taskIndex}`,
+            label: typeof task?.label === 'string' ? task.label : '',
+            category: ['content','fitness','study','website','organization','appointments','finances','cozinhar','mercado','psicologo'].includes(task?.category)
+              ? task.category
+              : 'organization',
+            tags: Array.isArray(task?.tags)
+              ? task.tags.map((tag: any) => String(tag).trim()).filter(Boolean)
+              : typeof task?.tags === 'string'
+              ? task.tags.split(',').map((tag: string) => tag.trim()).filter(Boolean)
+              : [],
+            completed: task?.completed === true || task?.completed === 'true' || task?.completed === 1 || task?.completed === '1',
+            completedOnDay: typeof task?.completedOnDay === 'number'
+              ? task.completedOnDay
+              : (typeof task?.completedOnDay === 'string' && /^[0-6]$/.test(task.completedOnDay) ? Number(task.completedOnDay) : undefined),
+            originalDay: typeof task?.originalDay === 'number'
+              ? task.originalDay
+              : (typeof day?.dayIndex === 'number' ? day.dayIndex : index),
+            time: typeof task?.time === 'string' ? task.time : undefined,
+          })) : []
+        }))
+      : buildWeekSchedule(weekNumber);
 
-  return {
-    week: weekNumber,
-    schedule,
-    completedCount,
-    totalTasks,
+    let totalTasks = 0;
+    let completedCount = 0;
+
+    for (const day of schedule) {
+      totalTasks += day.tasks.length;
+      completedCount += day.tasks.filter(task => task.completed).length;
+    }
+
+    return {
+      week: weekNumber,
+      schedule,
+      completedCount,
+      totalTasks,
+    };
   };
-};
 
 function useWeekStorage(
   allWeeks: WeekData[],
